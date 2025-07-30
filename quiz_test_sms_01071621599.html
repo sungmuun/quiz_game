@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>퀴즈 테스트용 (SMS 제출 포함)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body {
+      height: 100%;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+<div id="app" class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md text-center">
+  <h1 class="text-2xl font-bold mb-4">팀의 막내 이름을 작성하시오:</h1>
+  <input id="nameInput" type="text" placeholder="이름 입력" class="border p-2 w-full rounded mb-4" />
+  <button onclick="startQuiz()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full">퀴즈 시작</button>
+</div>
+
+<script>
+  const quizData = [
+    { question: "사과를 영어로 하면?", answer: "apple" },
+  ];
+
+  let current = 0;
+  let score = 0;
+  let name = "";
+  let timer;
+  let timeLeft = 5;
+  let answered = false;
+
+  function startQuiz() {
+    name = document.getElementById("nameInput").value.trim();
+    if (!name) return alert("이름을 입력해주세요.");
+    showQuestion();
+  }
+
+  function showQuestion() {
+    if (current >= quizData.length) {
+      showResult();
+      return;
+    }
+
+    timeLeft = 5;
+    answered = false;
+    clearInterval(timer);
+    timer = setInterval(updateTimer, 1000);
+
+    document.body.innerHTML = `
+      <div id="app" class="relative bg-white p-6 rounded-xl shadow-lg w-full max-w-md text-center mx-auto mt-4">
+        <div class="absolute top-4 right-6 text-lg font-bold text-red-600" id="timer">00:05</div>
+        <h2 class="text-lg font-semibold mb-3">문제 ${current + 1} / ${quizData.length}</h2>
+        <p class="text-base mb-4">${quizData[current].question}</p>
+        <input id="answerInput" type="text" placeholder="정답을 입력하세요" class="border p-2 w-full rounded mb-3 text-base" />
+        <button onclick="submitAnswer()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full">정답 제출</button>
+        <div id="result" class="mt-3 text-base font-bold"></div>
+      </div>
+    `;
+  }
+
+  function updateTimer() {
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      current++;
+      showQuestion();
+      return;
+    }
+
+    timeLeft--;
+    const min = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+    const sec = String(timeLeft % 60).padStart(2, "0");
+    const timerEl = document.getElementById("timer");
+    if (timerEl) timerEl.textContent = `${min}:${sec}`;
+  }
+
+  function submitAnswer() {
+    if (answered) return;
+
+    const input = document.getElementById("answerInput");
+    const result = document.getElementById("result");
+    const correct = quizData[current].answer.trim().toLowerCase();
+    const userAns = input.value.trim().toLowerCase();
+
+    if (!userAns) return;
+
+    if (userAns === correct) {
+      score++;
+      answered = true;
+      result.textContent = "✅ 정답!";
+      result.classList.remove("text-red-600");
+      result.classList.add("text-green-600");
+      input.disabled = true;
+    } else {
+      result.textContent = "❌ 오답입니다. 다시 시도하세요.";
+      result.classList.remove("text-green-600");
+      result.classList.add("text-red-600");
+    }
+  }
+
+  function showResult() {
+    clearInterval(timer);
+    const totalScore = score * 10;
+    const message = `${name}팀 ${totalScore}점`;
+    const encodedMessage = encodeURIComponent(message);
+    const smsNumber = "01071621599";
+
+    document.body.innerHTML = `
+      <div id="app" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center mx-auto mt-10">
+        <h2 class="text-3xl font-bold text-sky-500 mb-3">${name}팀</h2>
+        <div id="scoreBox" class="text-4xl font-bold text-purple-600 mb-6">${totalScore} 점</div>
+        <button onclick="captureScore()" class="bg-purple-600 text-white px-6 py-3 rounded hover:bg-purple-700 w-full mb-3">📸 캡쳐</button>
+        <a href="sms:${smsNumber}?body=${encodedMessage}" class="block bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 w-full">📩 선생님께 점수 제출</a>
+      </div>
+    `;
+  }
+
+  function captureScore() {
+    html2canvas(document.body).then(canvas => {
+      const link = document.createElement("a");
+      link.download = "quiz_result_full.png";
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+  }
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+</body>
+</html>
